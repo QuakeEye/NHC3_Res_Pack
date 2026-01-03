@@ -1,0 +1,41 @@
+name: Deploy Resource Pack as Zip
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Create Pack Release
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v6
+      - name: Zip Base
+        run: zip -r NHC3_Pack.zip . -x ./.git/**\* ./.git/ ./.github/**\* ./.github/ ./release.config.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+      - name: Install Semantic Release
+        run: npm install semantic-release@23
+      - name: Install Semantic Release Dependencies
+        run: npm install @semantic-release/exec@6 @semantic-release/commit-analyzer@11 @semantic-release/release-notes-generator@12
+      - name: Create and Publish Release
+        run: |
+          npx semantic-release@23
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get Latest Tag
+        id: previoustag
+        uses: WyriHaximus/github-action-get-previous-tag@v1.4.0
+        with:
+          fallback: v1.0.0
+      - name: Add Zip File to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: NHC3_Pack.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.previoustag.outputs.tag }}
+          append_body: true
